@@ -1,0 +1,1 @@
+web:    java -Dserver.port=$PORT $JAVA_OPTS -jar spring-doge-server/target/spring-doge-server-0.0.1-SNAPSHOT.jar; echo $JAVA_OPTS;

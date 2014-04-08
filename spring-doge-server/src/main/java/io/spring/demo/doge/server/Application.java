@@ -16,16 +16,17 @@
 
 package io.spring.demo.doge.server;
 
+import com.mongodb.Mongo;
 import io.spring.demo.doge.photo.manipulate.DogePhotoManipulator;
-
-import javax.servlet.MultipartConfigElement;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.context.embedded.MultiPartConfigFactory;
+import org.springframework.cloud.config.java.AbstractCloudConfig;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.data.mongodb.MongoDbFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.SimpleMongoDbFactory;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
@@ -39,7 +40,7 @@ import org.springframework.web.socket.config.annotation.AbstractWebSocketMessage
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 
-import com.mongodb.Mongo;
+import javax.servlet.MultipartConfigElement;
 
 /**
  * Application configuration and main method.
@@ -52,60 +53,69 @@ import com.mongodb.Mongo;
 @EnableAutoConfiguration
 public class Application {
 
-	@Bean
-	public MultipartConfigElement multipartConfigElement() {
-		MultiPartConfigFactory factory = new MultiPartConfigFactory();
-		factory.setMaxFileSize("10Mb");
-		return factory.createMultipartConfig();
-	}
+    @Bean
+    public MultipartConfigElement multipartConfigElement() {
+        MultiPartConfigFactory factory = new MultiPartConfigFactory();
+        factory.setMaxFileSize("10Mb");
+        return factory.createMultipartConfig();
+    }
 
-	@Bean
-	public DogePhotoManipulator dogePhotoManipulator() {
-		return new DogePhotoManipulator();
-	}
+    @Bean
+    public DogePhotoManipulator dogePhotoManipulator() {
+        return new DogePhotoManipulator();
+    }
 
-	@Bean
-	public GridFsTemplate gridFsTemplate(Mongo mongo, MongoTemplate mongoTemplate) {
-		return new GridFsTemplate(new SimpleMongoDbFactory(mongo, "fs"),
-				mongoTemplate.getConverter());
-	}
+    @Bean
+    public GridFsTemplate gridFsTemplate(Mongo mongo, MongoTemplate mongoTemplate) {
+        return new GridFsTemplate(new SimpleMongoDbFactory(mongo, "fs"),
+                mongoTemplate.getConverter());
+    }
 
-	@Configuration
-	@EnableScheduling
-	@EnableWebSocketMessageBroker
-	static class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer
-			implements SchedulingConfigurer {
+    @Configuration
+    @Profile("cloud")
+    public static class CloudConfiguration extends AbstractCloudConfig {
+        @Bean
+        public MongoDbFactory documentMongoDbFactory() {
+            return connectionFactory().mongoDbFactory();
+        }
+    }
 
-		@Bean
-		public ThreadPoolTaskScheduler reservationPool() {
-			return new ThreadPoolTaskScheduler();
-		}
+    @Configuration
+    @EnableScheduling
+    @EnableWebSocketMessageBroker
+    public static class WebSocketConfiguration extends AbstractWebSocketMessageBrokerConfigurer
+            implements SchedulingConfigurer {
 
-		@Override
-		public void registerStompEndpoints(StompEndpointRegistry registry) {
-			registry.addEndpoint("/doge").withSockJS();
-		}
+        @Bean
+        public ThreadPoolTaskScheduler reservationPool() {
+            return new ThreadPoolTaskScheduler();
+        }
 
-		@Override
-		public void configureClientOutboundChannel(ChannelRegistration registration) {
-			registration.taskExecutor().corePoolSize(4).maxPoolSize(10);
-		}
+        @Override
+        public void registerStompEndpoints(StompEndpointRegistry registry) {
+            registry.addEndpoint("/doge").withSockJS();
+        }
 
-		@Override
-		public void configureMessageBroker(MessageBrokerRegistry registry) {
-			registry.enableSimpleBroker("/queue/", "/topic/");
-			registry.setApplicationDestinationPrefixes("/app");
-		}
+        @Override
+        public void configureClientOutboundChannel(ChannelRegistration registration) {
+            registration.taskExecutor().corePoolSize(4).maxPoolSize(10);
+        }
 
-		@Override
-		public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-			taskRegistrar.setTaskScheduler(reservationPool());
-		}
+        @Override
+        public void configureMessageBroker(MessageBrokerRegistry registry) {
+            registry.enableSimpleBroker("/queue/", "/topic/");
+            registry.setApplicationDestinationPrefixes("/app");
+        }
 
-	}
+        @Override
+        public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+            taskRegistrar.setTaskScheduler(reservationPool());
+        }
 
-	public static void main(String[] args) {
-		SpringApplication.run(Application.class, args);
-	}
+    }
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
 
 }

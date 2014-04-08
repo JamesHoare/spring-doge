@@ -88,7 +88,7 @@ public class Application {
     @Bean
     public MongoDbFactory mongoDbFactory(Mongo mongo) {
         return new SimpleMongoDbFactory(mongo, "doge");
-    } 
+    }
     @Bean
     MongoClient mongoClient (  Environment environment ) throws IOException
     {

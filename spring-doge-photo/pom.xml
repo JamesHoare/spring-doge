@@ -8,9 +8,7 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>spring-doge-photo</artifactId>
-	<properties>
-		<main.basedir>${basedir}/..</main.basedir>
-	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework</groupId>

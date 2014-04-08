@@ -1,0 +1,11 @@
+---
+applications:
+- name: doge
+  memory: 512M
+  instances: 1
+  env:
+    SPRING_PROFILES_ACTIVE: cloud
+  path: target/doge.jar
+  buildpack: https://github.com/spring-io/java-buildpack
+  services:
+    - doge-mongodb
